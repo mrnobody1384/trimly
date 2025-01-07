@@ -531,11 +531,52 @@ export async function createExpertise(form: any): Promise<ApiResponse> {
   }
 }
 
+export async function getSalonAppointments(): Promise<ApiResponse> {
+  try {
+    const res = await authcli.get("/service/salon-appointment-list/");
+    console.log(res);
+    if (res.status == 201) {
+      return {
+        code: 201,
+        success: "خدمت با موفقیت ایجاد گردید",
+        data: res.data,
+        error: null,
+      };
+    }
+    return {
+      code: 401,
+      success: null,
+      error: "error",
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      if (error.request && !error.response) {
+        return {
+          error: "لطفا اتصال اینرنت خود را بررسی کنید",
+          code: 400,
+          success: null,
+        };
+      }
+      console.log("Error in Register", error);
+      return {
+        error: error.response?.data[0] || "خطا در هنگام تایید کد رخ داده است.",
+        code: error.response?.status || 500,
+        success: null,
+      };
+    }
+    return {
+      error: "یک خطای ناشناخته رخ داده است.",
+      code: 500,
+      success: null,
+    };
+  }
+}
+
 export async function getAllService(): Promise<ApiResponse> {
   try {
     const res = await ax.get("/service/service-list/");
     // console.log(res);
-    if (res.status == 201) {
+    if (res.status == 200) {
       return {
         code: 200,
         success: "دیتا با موفقیت دریافت شد.",
@@ -615,6 +656,47 @@ export async function getAllService(): Promise<ApiResponse> {
 //   }
 // }
 
+export async function getUserAppointments(): Promise<ApiResponse> {
+  try {
+    const res = await authcli.get("/account/user-appointment-list/");
+    console.log(res);
+    if (res.status == 200) {
+      return {
+        code: 200,
+        success: "دیتا با موفقیت دریافت شد.",
+        data: res.data,
+        error: null,
+      };
+    }
+    return {
+      code: 401,
+      success: null,
+      error: "error",
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      if (error.request && !error.response) {
+        return {
+          error: "لطفا اتصال اینرنت خود را بررسی کنید",
+          code: 400,
+          success: null,
+        };
+      }
+      console.log("Error in Register", error);
+      return {
+        error: error.response?.data[0] || "خطا در هنگام تایید کد رخ داده است.",
+        code: error.response?.status || 500,
+        success: null,
+      };
+    }
+    return {
+      error: "یک خطای ناشناخته رخ داده است.",
+      code: 500,
+      success: null,
+    };
+  }
+}
+
 export async function getAllSalons(): Promise<ApiResponse> {
   try {
     const res = await ax.get("/service/salon-list/");
@@ -664,7 +746,7 @@ export async function getSalon(id: string): Promise<ApiResponse> {
       },
     });
     // console.log(res);
-    if (res.status == 201) {
+    if (res.status == 200) {
       return {
         code: 200,
         success: "دیتا با موفقیت دریافت شد.",
@@ -748,12 +830,59 @@ export async function getSalonsByLocation(
   longitude: number
 ): Promise<ApiResponse> {
   try {
-    const res = await ax.get("/service/salon-list/");
+    const res = await ax.get("/service/salon-search-location/", {
+      params: {
+        x: longitude,
+        y: latitude,
+      },
+    });
     // console.log(res);
     if (res.status == 200) {
       return {
         code: 200,
         success: "دیتا با موفقیت دریافت شد.",
+        data: res.data,
+        error: null,
+      };
+    }
+    return {
+      code: 401,
+      success: null,
+      error: "error",
+    };
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      if (error.request && !error.response) {
+        return {
+          error: "لطفا اتصال اینرنت خود را بررسی کنید",
+          code: 400,
+          success: null,
+        };
+      }
+      console.log("Error in Register", error);
+      return {
+        error: error.response?.data[0] || "خطا در هنگام تایید کد رخ داده است.",
+        code: error.response?.status || 500,
+        success: null,
+      };
+    }
+    return {
+      error: "یک خطای ناشناخته رخ داده است.",
+      code: 500,
+      success: null,
+    };
+  }
+}
+
+
+export async function createAppointment(data: any): Promise<ApiResponse> {
+  try {
+    const res = await authcli.post("/service/appointment-create/", data);
+    console.log(res);
+    if (res.status == 201) {
+      return {
+        code: 201,
+        success: "رزرو با موفقیت انجام شد.",
         data: res.data,
         error: null,
       };

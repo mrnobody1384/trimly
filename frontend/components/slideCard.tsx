@@ -23,7 +23,7 @@ const SalonCard = ({ salon }: SalonCardProps) => {
         <div className="flex gap-5 ">
           <div className="w-[150px] relative aspect-video border border-gray-400 rounded-2xl overflow-hidden">
             <Image
-              src={"http://127.0.0.1:8000/" + salon.salon_images[0]}
+              src={"http://localhost:8000" + salon.salon_images[0]}
               alt={salon.name}
               className="w-full h-40 object-cover rounded-md"
               fill

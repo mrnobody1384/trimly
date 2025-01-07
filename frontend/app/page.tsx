@@ -3,6 +3,8 @@ import Image from "next/image";
 import {
   BellDot,
   CalendarHeartIcon,
+  LogIn,
+  MapPin,
   SearchIcon,
   SettingsIcon,
   User,
@@ -125,7 +127,7 @@ export default function Home() {
             <div className="rounded-full p-2 border bg-white">
               {user.image_profile ? (
                 <Image
-                  src={user.image_profile}
+                  src={"http://127.0.0.1:8000" + user.image_profile}
                   width={50}
                   height={50}
                   alt={`${user.first_name} ${user.last_name}`}
@@ -156,23 +158,26 @@ export default function Home() {
 
       <nav className="flex justify-between gap-2">
         <div className="gap-1 flex">
-          <button
-            id="setting"
-            className="rounded-full p-2 bg-white "
-            onClick={() => router.push("/profile")}
-          >
-            <SettingsIcon />
-          </button>
+          {token && (
+            <button
+              id="setting"
+              className="rounded-full p-2 bg-white "
+              onClick={() => router.push("/profile")}
+            >
+              <SettingsIcon />
+            </button>
+          )}
+
           {!token && (
             <button id="calender" className="rounded-full p-2 bg-white">
-              <CalendarHeartIcon />
+              <LogIn />
             </button>
           )}
         </div>
         <TextInput
           id="search"
           placeholder="جستجو ..."
-          className="w-full rounded-md"
+          className="w-full rounded-lg"
           leftSection={<SearchIcon />}
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -194,7 +199,9 @@ export default function Home() {
         ))}
       </div>
 
-      <button onClick={handleNearbySalons}>نمایش اطراف من</button>
+      <Button onClick={handleNearbySalons} className="w-3/4" variant="gradient">
+        نمایش اطراف من <MapPin />
+      </Button>
 
       {loading ? (
         <LoadingGif />

@@ -9,12 +9,14 @@ import { PinInput } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { CircleCheckBig, XCircleIcon } from "lucide-react";
 import { useLocalStorage } from "@mantine/hooks";
-// Define Zod schema
-const schema = z.object({
-  otp: z.string().length(6, "کد باید ۶ رقم باشد."),
-});
+import dynamic from "next/dynamic";
 
-function VerifyOTP() {
+// Define Zod schema
+
+export default function Page() {
+  const schema = z.object({
+    otp: z.string().length(6, "کد باید ۶ رقم باشد."),
+  });
   const router = useRouter();
   const searchParams = useSearchParams();
   const phone_number = searchParams.get("phone_number");
@@ -96,5 +98,3 @@ function VerifyOTP() {
     </form>
   );
 }
-
-export default VerifyOTP;

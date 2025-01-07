@@ -1,109 +1,164 @@
-import React, { useState, useMemo, useCallback } from "react";
+"use client";
+import React, { useState, useMemo } from "react";
 import { Button } from "@mantine/core";
 
-// تبدیل زمان به دقیقه
-const timeToMinutes = (time: string) => {
-  const [hours, minutes] = time.split(":").map(Number);
-  return hours * 60 + minutes;
-};
+// تعریف تایپ‌ها برای TypeScript
+interface Shift {
+  id: string;
+  day_of_week: string;
+  start_time: string;
+  end_time: string;
+}
 
-// تبدیل دقیقه به زمان
-const minutesToTime = (minutes: number) => {
-  const hours = Math.floor(minutes / 60).toString().padStart(2, "0");
-  const mins = (minutes % 60).toString().padStart(2, "0");
-  return `${hours}:${mins}`;
-};
-
-// تولید اسلات‌های زمانی با جلوگیری از رندرهای اضافی
-const generateTimeSlots = (shifts: any[], duration: string) => {
-  const durationMinutes = timeToMinutes(duration);
-  const slots: { day: string; time: string }[] = [];
-
-  shifts.forEach((shift) => {
-    const startMinutes = timeToMinutes(shift.start_time);
-    const endMinutes = timeToMinutes(shift.end_time);
-
-    for (let current = startMinutes; current + durationMinutes <= endMinutes; current += durationMinutes) {
-      slots.push({
-        day: shift.day_of_week,
-        time: minutesToTime(current),
-      });
-    }
-  });
-  return slots;
-};
+interface Service {
+  id: string;
+  name: string;
+  duration: string; // قالب: "00:HH:MM"
+}
 
 interface TimeSlotSelectorProps {
-  shifts: any[];
-  duration: string;
-  onSelectTimeSlot: (slot: { day: string; time: string }) => void;
+  shifts: Shift[];
+  serviceId: string;
+  services: Service[];
+  onSelect: (time: string) => void;
+  weekTxt: string;
 }
+
+const englishToPersianDays: { [key: string]: string } = {
+  SATURDAY: "ش",
+  SUNDAY: "ی",
+  MONDAY: "د",
+  TUESDAY: "س",
+  WEDNESDAY: "چ",
+  THURSDAY: "پ",
+  FRIDAY: "ج",
+};
 
 const TimeSlotSelector: React.FC<TimeSlotSelectorProps> = ({
   shifts,
-  duration,
-  onSelectTimeSlot,
+  serviceId,
+  services,
+  onSelect,
+  weekTxt,
 }) => {
-  const [selectedSlot, setSelectedSlot] = useState<{ day: string; time: string } | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const slotsPerPage = 6;
 
-  // استفاده از useMemo برای جلوگیری از رندر بی‌پایان
-  const timeSlots = useMemo(() => generateTimeSlots(shifts, duration), [shifts, duration]);
+  // انتخاب سرویس و مدت زمان آن
+  const selectedService = services.find((service) => service.id === serviceId);
+  const duration = selectedService ? selectedService.duration : "00:01:00";
 
-  // بهینه‌سازی تابع انتخاب زمان با useCallback
-  const handleSlotClick = useCallback(
-    (slot: { day: string; time: string }) => {
-      setSelectedSlot(slot);
-      onSelectTimeSlot(slot);
-    },
-    [onSelectTimeSlot]
-  );
+  const durationMinutes = useMemo(() => {
+    const [hours, minutes] = duration.split(":").slice(1).map(Number);
+    return hours * 60 + minutes;
+  }, [duration]);
 
-  // نگاشت روزهای هفته به فارسی
-  const persianDays: { [key: string]: string } = {
-    SUNDAY: "یکشنبه",
-    MONDAY: "دوشنبه",
-    TUESDAY: "سه‌شنبه",
-    WEDNESDAY: "چهارشنبه",
-    THURSDAY: "پنج‌شنبه",
-    FRIDAY: "جمعه",
-    SATURDAY: "شنبه",
+  // تولید اسلات‌های زمانی برای هر شیفت
+  const generateTimeSlots = (startTime: string, endTime: string): string[] => {
+    const slots: string[] = [];
+    let [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = endTime.split(":").map(Number);
+
+    let currentMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+
+    while (currentMinutes + durationMinutes <= endMinutes) {
+      const hour = Math.floor(currentMinutes / 60);
+      const minute = currentMinutes % 60;
+      slots.push(
+        `${hour.toString().padStart(2, "0")}:${minute
+          .toString()
+          .padStart(2, "0")}`
+      );
+      currentMinutes += durationMinutes;
+    }
+
+    return slots;
   };
 
+  // تولید اسلات‌های زمانی برای تمام شیفت‌ها
+  const allSlots = useMemo(() => {
+    const slotsByDay: { [key: string]: string[] } = {};
+
+    Object.values(englishToPersianDays).forEach((day) => {
+      slotsByDay[day] = [];
+    });
+
+    shifts.forEach((shift) => {
+      const day = englishToPersianDays[shift.day_of_week];
+      slotsByDay[day] = generateTimeSlots(shift.start_time, shift.end_time);
+    });
+
+    return slotsByDay;
+  }, [shifts, durationMinutes]);
+
+  // صفحه‌بندی اسلات‌ها
+  const paginatedSlots = useMemo(() => {
+    const paginated: { [key: string]: string[] } = {};
+    Object.entries(allSlots).forEach(([day, slots]) => {
+      paginated[day] = slots.slice(
+        currentPage * slotsPerPage,
+        (currentPage + 1) * slotsPerPage
+      );
+    });
+    return paginated;
+  }, [allSlots, currentPage]);
+
+  const weekTxtPersian: string = weekTxt.charAt(0);
+
   return (
-    <div className="p-4 border rounded-lg overflow-x-auto">
-      <table className="w-full border-collapse border">
-        <thead>
-          <tr>
-            {Object.values(persianDays).map((day, index) => (
-              <th key={index} className="p-2 border text-center">{day}</th>
+    <div className="time-slot-selector border p-4 rounded-lg overflow-hidden w-full">
+      {/* هدر روزهای هفته */}
+      <div className="grid grid-cols-7 text-center border-b mb-4 pb-2 text-sm">
+        {Object.values(englishToPersianDays).map((day) => (
+          <div
+            key={day}
+            className={`${
+              day === weekTxtPersian
+                ? "text-white bg-blue-600 p-2 rounded-lg"
+                : ""
+            }`}
+          >
+            {day}
+          </div>
+        ))}
+      </div>
+
+      {/* نمایش اسلات‌های زمانی به درستی زیر هر روز */}
+      <div className="grid grid-cols-7 gap-2 overflow-y-scroll max-h-[300px]">
+        {Object.values(englishToPersianDays).map((day) => (
+          <div key={day} className="flex flex-col items-center space-y-2">
+            {paginatedSlots[day]?.map((time, index) => (
+              <button
+                key={index}
+                className="border w-full text-center rounded-lg hover:bg-blue-500 hover:text-white transition-all duration-300"
+                onClick={() => onSelect(time)}
+              >
+                {time}
+              </button>
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            {Object.keys(persianDays).map((day, index) => (
-              <td key={index} className="p-2 border align-top">
-                <div className="h-[300px] overflow-y-scroll flex flex-col items-center gap-2">
-                  {timeSlots
-                    .filter((slot) => slot.day === day)
-                    .map((slot, idx) => (
-                      <Button
-                        key={idx}
-                        size="md"
-                        fullWidth
-                        className="w-[120px]" // بهبود اندازه دکمه‌ها
-                        variant={selectedSlot?.time === slot.time && selectedSlot?.day === slot.day ? "filled" : "outline"}
-                        onClick={() => handleSlotClick(slot)}
-                      >
-                        {slot.time}
-                      </Button>
-                    ))}
-                </div>
-              </td>
-            ))}
-          </tr>
-        </tbody>
-      </table>
+          </div>
+        ))}
+      </div>
+
+      {/* دکمه‌های صفحه‌بندی */}
+      <div className="flex justify-center gap-4 mt-4">
+        <Button
+          variant="default"
+          onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
+          disabled={currentPage === 0}
+        >
+          قبلی
+        </Button>
+        <Button
+          onClick={() => setCurrentPage((prev) => prev + 1)}
+          disabled={Object.values(paginatedSlots).every(
+            (slots) => slots.length < slotsPerPage
+          )}
+        >
+          بعدی
+        </Button>
+      </div>
     </div>
   );
 };
